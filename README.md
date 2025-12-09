@@ -4,6 +4,8 @@ An **AI-powered real-time 3D interaction system** that allows users to control a
 
 Developed by **Love Patel**, a B.Sc. IT (Honours – AI & ML) student at **Parul University**, this project demonstrates practical implementation of **AI + Web Development + Interactive Graphics**.
 
+### 🔗 Live Demo
+https://itslovepatel.github.io/hand-tracked-3d-helmet/
 
 ---
 
@@ -65,3 +67,4 @@ This project was built to:
 ├── index.html      # Main UI & layout
 ├── app.js          # AI logic, Three.js rendering, MediaPipe tracking
 └── assets/         # Optional models/textures
+
