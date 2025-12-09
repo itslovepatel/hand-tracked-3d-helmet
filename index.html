@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Love Patel Hand-Controlled Helmet</title>
+
+    <style>
+        
+        :root { --accent: #00ffbf; --accent-soft: rgba(0, 255, 191, 0.4); --bg: #050608; }
+        * { box-sizing: border-box; }
+        body { margin: 0; overflow: hidden; background:
+            radial-gradient(circle at 20% 15%, #161b3a 0, transparent 45%),
+            radial-gradient(circle at 80% 80%, #0b3b3b 0, transparent 50%),
+            #050608;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            color: #f5f5f5;
+        }
+        canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; }
+        #webcam { position: absolute; bottom: 24px; left: 24px; width: 220px; height: auto;
+            transform: scaleX(-1); z-index: 3; border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 34px 60px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.8);
+            overflow: hidden;
+            background: radial-gradient(circle at 0 0, rgba(0,255,191,0.06), transparent 60%);
+        }
+        #webcam::before { content:""; position:absolute; inset:0; pointer-events:none;
+            background:linear-gradient(135deg,rgba(0,255,191,0.25),transparent 40%,rgba(0,153,255,0.25));
+            mix-blend-mode:screen; opacity:0.75;
+        }
+        #loading { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            color:var(--accent); font-size:1.4rem; pointer-events:none; z-index:10; text-align:center;
+            letter-spacing:0.2em; text-transform:uppercase;
+        }
+        #loading span { display:block; margin-top:8px; font-size:0.9rem; color:#ccc; letter-spacing:0.08em; }
+        #cursorGlow { position:fixed; width:260px; height:260px; border-radius:50%; pointer-events:none;
+            background:radial-gradient(circle,rgba(0,255,191,0.25),transparent 70%); mix-blend-mode:screen;
+            opacity:0.8; z-index:0; filter:blur(4px); transform:translate(-50%,-50%);
+        }
+        #controlDock { position:fixed; bottom:24px; right:24px; z-index:4;
+            display:flex; flex-direction:column-reverse; align-items:flex-end; gap:10px; }
+        #controlToggle { width:48px; height:48px; border-radius:999px;
+            background:radial-gradient(circle at 30% 30%,#fff,#00ffd5 35%,#008cff 100%);
+            box-shadow:0 0 20px rgba(0,255,191,0.55),0 0 45px rgba(0,140,255,0.75);
+            display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative;
+            overflow:hidden; transition:.25s ease;
+        }
+        #controlToggle::after { content:""; position:absolute; inset:0;
+            background:radial-gradient(circle at 0 0,rgba(255,255,255,0.7),transparent 60%);
+            mix-blend-mode:screen; opacity:0.6;
+        }
+        #controlToggleIcon { font-size:1.4rem; color:#001015; z-index:1; }
+        #controlToggle:hover { transform:translateY(-2px) scale(1.05);
+            box-shadow:0 0 26px rgba(0,255,191,0.9),0 0 70px rgba(0,140,255,1);
+        }
+        #controlPanel { position:relative; padding:10px 12px; min-width:230px; border-radius:16px;
+            background:linear-gradient(145deg,rgba(0,0,0,0.9),rgba(8,30,50,0.95));
+            border:1px solid rgba(0,255,191,0.35); box-shadow:0 12px 40px rgba(0,0,0,0.95),
+            0 0 32px rgba(0,255,191,0.3); backdrop-filter:blur(16px);
+            opacity:0; transform:translateY(16px) scale(0.96); pointer-events:none;
+            transition:.3s ease;
+        }
+        #controlPanel.open { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+        #controlPanel::before { content:"ASSET CONTROL"; position:absolute; top:-11px; right:14px;
+            padding:2px 8px; font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase;
+            background:radial-gradient(circle at 100% 50%,rgba(0,255,191,0.6),transparent 70%);
+            color:#bffcff; border-radius:999px;
+        }
+        .panel-row { margin-bottom:8px; }
+        .panel-label { font-size:0.7rem; opacity:0.76; margin-bottom:4px; letter-spacing:0.09em; }
+        #imageUpload { width:100%; font-size:0.7rem; color:#e0e0e0; background:rgba(7,19,30,0.9);
+            border-radius:8px; border:1px solid rgba(0,255,191,0.35); padding:6px; }
+        #imageUpload::-webkit-file-upload-button {
+            border:none; background:linear-gradient(135deg,#00ffd5,#008cff); color:#001015;
+            border-radius:6px; padding:4px 10px; margin-right:6px; cursor:pointer;
+            font-size:0.7rem; font-weight:600;
+        }
+        #resetHelmet { width:100%; margin-top:4px; padding:7px 10px; border-radius:10px;
+            border:1px solid rgba(0,255,191,0.45);
+            background:radial-gradient(circle at 0 0,rgba(0,255,191,0.35),rgba(0,50,90,0.95));
+            cursor:pointer; font-size:0.75rem; display:flex; justify-content:center; gap:6px;
+        }
+        #resetHelmet:hover { filter:brightness(1.1); box-shadow:0 0 22px rgba(0,255,191,0.5); }
+        @keyframes pulseOrb { 0%{transform:scale(1);} 50%{transform:scale(1.04);} 100%{transform:scale(1);} }
+        #controlToggle.idle-pulse { animation:pulseOrb 2.1s infinite; }
+        @media (max-width:640px){ #webcam{width:150px; bottom:16px; left:16px;} #controlDock{bottom:16px; right:16px;} }
+    </style>
+</head>
+
+<body>
+
+    <div id="cursorGlow"></div>
+    <div id="loading">INITIALIZING AI...<span>(PLEASE ALLOW CAMERA ACCESS)</span></div>
+
+    <video id="webcam" autoplay playsinline></video>
+
+    
+    <div id="controlDock">
+        <div id="controlPanel">
+            <div class="panel-row">
+                <div class="panel-label">Upload Texture / Image</div>
+                <input type="file" id="imageUpload" accept="image/*">
+            </div>
+            <button id="resetHelmet"><span>⟳</span>DEFAULT HELMET</button>
+            <div class="panel-hint">Hover or click the orb to toggle this panel.</div>
+        </div>
+        <div id="controlToggle" class="idle-pulse">
+            <div id="controlToggleIcon">◎</div>
+        </div>
+    </div>
+
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/+esm"
+            }
+        }
+    </script>
+
+    <!-- Javascrpt bnake idhr dalna he -->
+    <script type="module" src="app.js"></script>
+
+</body>
+</html>
